@@ -1,0 +1,77 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: secondbrain
+      POSTGRES_PASSWORD: secondbrain
+      POSTGRES_DB: secondbrain
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U secondbrain -d secondbrain"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY_ID:-secondbrain}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_ACCESS_KEY:-secondbrain-dev-secret}
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173"
+      RUSTFS_OBS_LOGGER_LEVEL: error
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - rustfs-data:/data
+    command: ["/data"]
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgres://secondbrain:secondbrain@db:5432/secondbrain
+      BIND_ADDR: 0.0.0.0:8080
+      CORS_ORIGIN: http://localhost:5173
+      TZ: UTC
+      APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-admin@example.com}
+      REMINDER_TICK_SECONDS: ${REMINDER_TICK_SECONDS:-60}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-http://127.0.0.1:8080/api/v1/integrations/google-calendar/oauth/callback}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-}
+      CALENDAR_SYNC_SECONDS: ${CALENDAR_SYNC_SECONDS:-300}
+      PEPY_ENABLED: ${PEPY_ENABLED:-false}
+      PEPY_ALLOWED_EMAILS: ${PEPY_ALLOWED_EMAILS:-}
+      PEPY_BASE_URL: ${PEPY_BASE_URL:-https://softwareseniapi.pepy.app/api/v1}
+      PEPY_USERNAME: ${PEPY_USERNAME:-}
+      PEPY_PASSWORD: ${PEPY_PASSWORD:-}
+      PEPY_USER_ID: ${PEPY_USER_ID:-820}
+      PEPY_PROJECT_ID: ${PEPY_PROJECT_ID:-5674}
+      PEPY_LOGIN_INTERVAL_SECONDS: ${PEPY_LOGIN_INTERVAL_SECONDS:-259200}
+      PEPY_SYNC_SECONDS: ${PEPY_SYNC_SECONDS:-300}
+      S3_ENDPOINT: http://rustfs:9000
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://127.0.0.1:9000}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-second-brain}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-secondbrain}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-secondbrain-dev-secret}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      S3_AUTO_CREATE_BUCKET: ${S3_AUTO_CREATE_BUCKET:-true}
+      ATTACHMENT_URL_TTL_SECONDS: ${ATTACHMENT_URL_TTL_SECONDS:-900}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
+
+volumes:
+  rustfs-data:
