@@ -24,7 +24,7 @@ func (w slogWriter) Printf(format string, args ...any) {
 	w.log.Error(strings.TrimSpace(fmt.Sprintf(format, args...)))
 }
 
-// Open connects to DATABASE_URL. Schema changes belong to the Goose migrations,
+// Open connects to DATABASE_URL. Schema changes belong to the SQL migrations,
 // never to AutoMigrate.
 func Open(ctx context.Context, cfg *config.Config, log *slog.Logger) (*gorm.DB, error) {
 	if log == nil {

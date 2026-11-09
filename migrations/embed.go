@@ -1,5 +1,5 @@
-// Package migrations embeds the Goose SQL migrations so both the server and
-// the test harness can migrate a database without a working-directory guess.
+// Package migrations embeds golang-migrate SQL files so the server and test
+// harness can migrate a database without a working-directory guess.
 package migrations
 
 import "embed"

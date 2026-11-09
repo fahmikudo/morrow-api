@@ -1,4 +1,4 @@
-// Command migrate applies the Goose migrations in ./migrations.
+// Command migrate applies the embedded golang-migrate migrations.
 package main
 
 import (
@@ -7,7 +7,6 @@ import (
 	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose/v3"
 
 	"morrow-api/internal/config"
 	"morrow-api/migrations"
@@ -42,18 +41,22 @@ func run() error {
 		return fmt.Errorf("could not connect to PostgreSQL using DATABASE_URL (%w)", err)
 	}
 
-	goose.SetBaseFS(migrations.FS)
-	if err := goose.SetDialect("postgres"); err != nil {
-		return err
-	}
-
 	switch os.Args[1] {
 	case "up":
-		return goose.Up(db, ".")
+		return migrations.Up(db)
 	case "down":
-		return goose.DownTo(db, ".", 0)
+		return migrations.Down(db)
 	case "status":
-		return goose.Status(db, ".")
+		version, dirty, err := migrations.Status(db)
+		if err != nil {
+			return err
+		}
+		if version == nil {
+			fmt.Println("version: none\ndirty: false")
+			return nil
+		}
+		fmt.Printf("version: %d\ndirty: %t\n", *version, dirty)
+		return nil
 	default:
 		return fmt.Errorf("unknown command %q", os.Args[1])
 	}

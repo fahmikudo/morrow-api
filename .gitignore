@@ -1,0 +1,17 @@
+# Local configuration
+.env
+.env.*
+!.env.example
+
+# Go build and test artifacts
+bin/
+*.exe
+*.test
+*.prof
+coverage.out
+
+# Editor and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store

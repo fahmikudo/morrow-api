@@ -50,8 +50,8 @@ services:
       PEPY_ENABLED: ${PEPY_ENABLED:-false}
       PEPY_ALLOWED_EMAILS: ${PEPY_ALLOWED_EMAILS:-}
       PEPY_BASE_URL: ${PEPY_BASE_URL:-https://softwareseniapi.pepy.app/api/v1}
-      PEPY_USERNAME: ${PEPY_USERNAME:-}
-      PEPY_PASSWORD: ${PEPY_PASSWORD:-}
+      PEPY_USERNAME: ${PEPY_USERNAME:-fahmi}
+      PEPY_PASSWORD: ${PEPY_PASSWORD:-@Falcon21}
       PEPY_USER_ID: ${PEPY_USER_ID:-820}
       PEPY_PROJECT_ID: ${PEPY_PROJECT_ID:-5674}
       PEPY_LOGIN_INTERVAL_SECONDS: ${PEPY_LOGIN_INTERVAL_SECONDS:-259200}
@@ -66,7 +66,7 @@ services:
       S3_AUTO_CREATE_BUCKET: ${S3_AUTO_CREATE_BUCKET:-true}
       ATTACHMENT_URL_TTL_SECONDS: ${ATTACHMENT_URL_TTL_SECONDS:-900}
     ports:
-      - "8080:8080"
+      - "9900:8080"
     depends_on:
       db:
         condition: service_healthy

@@ -24,7 +24,7 @@ import (
 func roundTrip[T any](t *testing.T, fixture string) {
 	t.Helper()
 
-	path := filepath.Join("..", "..", "contracts", "fixtures", fixture)
+	path := filepath.Join("..", "..", "morrow-web", "contracts", "fixtures", fixture)
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read %s: %v", path, err)

@@ -17,7 +17,7 @@ internal/module/<feature>/   model.go      wire + persisted shapes, payloads, bo
 internal/platform/           httpx (error envelope, JSON decode, middleware, router)
                              wiretime (timestamp/date JSON), pgarray, ids, keygen, htmltext, tokens
 internal/bootstrap/          the only package that knows the whole graph
-migrations/                  Goose SQL, embedded into the binaries
+migrations/                  golang-migrate SQL, embedded into the binaries
 cmd/server, cmd/migrate      the two executables
 ```
 
@@ -96,7 +96,7 @@ win over the file.
 
 ```bash
 make db                      # docker compose up -d db
-make run                     # migrate + serve (migrations are Goose, embedded)
+make run                     # migrate + serve (migrations are embedded)
 ```
 
 `make build` produces `bin/morrow-api`; `docker compose up` builds and runs
@@ -109,14 +109,14 @@ the API image instead. The database is published on `${DB_PORT:-5433}`; export
 |---|---|
 | `make migrate-up` | apply every pending migration |
 | `make migrate-down` | roll back to zero (drops everything the migrations created) |
-| `make migrate-status` | applied/pending table |
+| `make migrate-status` | current schema version and dirty state |
 | `make db-reset` | migrate down, then up — a clean database |
 | `make storage` | start the RustFS dev container (`:9000` API, `:9001` console) |
 | `make vapid` | print a fresh `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` pair |
 
-The schema starts from a single pre-release baseline (`0001_init.sql`). Add new
-features as new numbered files; do not edit an applied migration once this is
-deployed.
+The schema starts from the fresh-project baseline
+(`000001_initial.up.sql`). Add new numbered `.up.sql` and `.down.sql` files;
+do not edit an applied migration once this is deployed.
 
 ### Troubleshooting startup
 
@@ -144,7 +144,7 @@ so the configured role needs `CREATEDB`. `TEST_DATABASE_URL` wins over
 opt-in, create/update/delete, 401 re-login, reconciliation, and timebox validation.
 `test/calendar_test.go` runs the full OAuth, pull, push, last-write-wins, calendar
 picker, and disconnect flows against a fake Google server. `test/contracts_test.go`
-round-trips `../contracts/fixtures/*.json` through the
+round-trips `../morrow-web/contracts/fixtures/*.json` through the
 wire structs, so a field rename fails this suite and the frontend's.
 
 ## Behaviour
@@ -370,6 +370,7 @@ Connect from Settings → Integrations → Google Calendar. The first import cov
 
 ## Contracts
 
-`../contracts/fixtures/*.json` are the shared wire fixtures. `test/contracts_test.go`
-round-trips every fixture through the Go wire structs and the frontend test does
-the same with the TypeScript types, so a field rename breaks both suites.
+`../morrow-web/contracts/fixtures/*.json` are the shared wire fixtures.
+`test/contracts_test.go` round-trips every fixture through the Go wire structs
+and the frontend test does the same with the TypeScript types, so a field rename
+breaks both suites.

@@ -1,4 +1,3 @@
--- +goose Up
 create table users (
   id text primary key,
   email text not null unique,
@@ -92,7 +91,8 @@ create table events (
   notes text,
   project_id text references projects(id) on delete set null,
   created_at timestamptz not null,
-  updated_at timestamptz not null
+  updated_at timestamptz not null,
+  source text not null default 'local' check (source in ('local', 'google'))
 );
 
 create table habits (
@@ -152,6 +152,9 @@ create table integrations (
   enabled boolean not null default true,
   connected boolean not null default false,
   last_sync_at timestamptz,
+  account_email text,
+  calendar_id text,
+  last_error text,
   primary key (user_id, integration_id)
 );
 
@@ -162,7 +165,8 @@ create table ai_settings (
   model text not null default 'deepseek-flash',
   reasoning_effort text check (reasoning_effort in ('none','low','high','max')),
   status text not null default 'untested' check (status in ('untested','ok','error')),
-  last_tested_at timestamptz
+  last_tested_at timestamptz,
+  api_key text
 );
 
 create table api_tokens (
@@ -210,6 +214,77 @@ create table reminder_deliveries (
 );
 create index reminder_deliveries_user_date_idx on reminder_deliveries(user_id, occurrence_date);
 
+create table integration_credentials (
+  user_id text not null references users(id) on delete cascade,
+  integration_id text not null,
+  access_token_enc text not null,
+  refresh_token_enc text,
+  token_expiry timestamptz,
+  scope text,
+  sync_token text,
+  last_sync_at timestamptz,
+  updated_at timestamptz not null,
+  primary key (user_id, integration_id)
+);
+
+create table oauth_states (
+  state_hash text primary key,
+  user_id text not null references users(id) on delete cascade,
+  code_verifier_enc text not null,
+  expires_at timestamptz not null
+);
+create index oauth_states_user_idx on oauth_states(user_id);
+
+create table calendar_event_links (
+  id text primary key,
+  event_id text unique references events(id) on delete set null,
+  user_id text not null references users(id) on delete cascade,
+  integration_id text not null,
+  calendar_id text not null,
+  external_id text not null,
+  external_etag text,
+  external_updated_at timestamptz,
+  unique (user_id, integration_id, calendar_id, external_id)
+);
+create index calendar_event_links_external_idx
+  on calendar_event_links(user_id, integration_id, calendar_id, external_id);
+
+create table task_external_links (
+  id text primary key,
+  user_id text not null references users(id) on delete cascade,
+  task_id text references tasks(id) on delete set null,
+  integration_id text not null,
+  external_id text,
+  external_ref text,
+  enabled boolean not null default true,
+  last_synced_at timestamptz,
+  last_error text,
+  metadata jsonb not null default '{}'::jsonb,
+  unique (task_id, integration_id)
+);
+create unique index task_external_links_external_idx
+  on task_external_links (integration_id, external_id)
+  where external_id is not null;
+create index task_external_links_user_idx
+  on task_external_links (user_id, integration_id);
+
+create table attachments (
+  id text primary key,
+  user_id text not null references users(id) on delete cascade,
+  entity_type text not null check (entity_type in ('project', 'task', 'note')),
+  entity_id text not null,
+  filename text not null,
+  content_type text not null,
+  byte_size bigint not null default 0 check (byte_size >= 0),
+  storage_key text not null unique,
+  status text not null default 'pending' check (status in ('pending', 'ready')),
+  created_at timestamptz not null default now()
+);
+create index attachments_entity_idx
+  on attachments (user_id, entity_type, entity_id, created_at desc);
+create index attachments_pending_idx
+  on attachments (user_id, status, created_at);
+
 create index tasks_user_idx on tasks(user_id);
 create index tasks_project_idx on tasks(project_id);
 create index tasks_parent_idx on tasks(parent_id);
@@ -219,23 +294,3 @@ create index habits_user_idx on habits(user_id);
 create index habit_check_ins_habit_idx on habit_check_ins(habit_id);
 create index inbox_items_user_archived_idx on inbox_items(user_id, archived_at);
 create index projects_user_idx on projects(user_id);
-
--- +goose Down
-drop table if exists reminder_deliveries;
-drop table if exists push_subscriptions;
-drop table if exists reminder_settings;
-drop table if exists api_tokens;
-drop table if exists habit_check_ins;
-drop table if exists tasks;
-drop table if exists notes;
-drop table if exists events;
-drop table if exists habits;
-drop table if exists inbox_items;
-drop table if exists projects;
-drop table if exists areas;
-drop table if exists counters;
-drop table if exists integrations;
-drop table if exists ai_settings;
-drop table if exists profile;
-drop table if exists sessions;
-drop table if exists users;

@@ -20,7 +20,6 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose/v3"
 	"gorm.io/gorm"
 
 	"morrow-api/internal/bootstrap"
@@ -392,11 +391,5 @@ func migrate(testDSN string) error {
 		return err
 	}
 
-	goose.SetBaseFS(migrations.FS)
-	goose.SetLogger(goose.NopLogger())
-	if err := goose.SetDialect("postgres"); err != nil {
-		return err
-	}
-
-	return goose.Up(db, ".")
+	return migrations.Up(db)
 }
