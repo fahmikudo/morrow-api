@@ -36,11 +36,32 @@ Versi yang berjalan tertulis di `/opt/morrow-api/.env` pada baris
 
 ## Setup server, sekali saja
 
-`/opt` milik root, jadi buat direktori sebagai pemilik `deploy`:
+`/opt` milik root, jadi buat direktori sebagai pemilik user SSH yang dipakai
+CI (`DEPLOY_USER`). Contoh dengan `deploy`:
 
 ```bash
 sudo install -d -o deploy -g deploy -m 750 /opt/morrow-api
 ```
+
+Kalau `DEPLOY_USER` bukan `deploy` (misal `ubuntu`), samakan pemiliknya dan
+jangan pakai mode 777:
+
+```bash
+sudo chown -R ubuntu:ubuntu /opt/morrow-api
+sudo chmod 750 /opt/morrow-api
+```
+
+User itu juga harus bisa menjalankan Docker, karena `deploy.sh` memanggil
+`docker compose`:
+
+```bash
+sudo usermod -aG docker ubuntu
+# lalu login ulang agar grup baru berlaku
+id ubuntu | grep docker
+```
+
+`scp` dan `deploy.sh` menulis ke direktori tersebut, jadi pemilik direktori
+harus user SSH itu — bukan sekadar `chmod 777` yang membuka akses ke semua user.
 
 Salin file pertama kali dari laptop (setelah itu CI yang memperbarui compose dan
 `deploy.sh`):

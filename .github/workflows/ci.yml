@@ -160,13 +160,24 @@ jobs:
       - name: Authorise SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          # Fingerprint is printed so it can be compared with the server:
+          #   ssh-keygen -lf ~deploy/.ssh/authorized_keys
+          ssh-keygen -y -f ~/.ssh/id_deploy > ~/.ssh/id_deploy.pub
+          ssh-keygen -lf ~/.ssh/id_deploy.pub
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Test SSH access
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "${{ secrets.DEPLOY_PORT }}" \
+            -o IdentitiesOnly=yes -o BatchMode=yes \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" true
 
       - name: Ship compose file and deploy script
         run: |
           scp -i ~/.ssh/id_deploy -P "${{ secrets.DEPLOY_PORT }}" \
+            -o IdentitiesOnly=yes -o BatchMode=yes \
             deploy/docker-compose.yml deploy/deploy.sh \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/morrow-api/"
 
