@@ -75,19 +75,21 @@ func (r *Repository) Save(ctx context.Context, tx *gorm.DB, row Row) error {
 	return tx.WithContext(ctx).Model(&Row{}).
 		Where("id = ? and user_id = ?", row.ID, row.UserID).
 		Updates(map[string]any{
-			"title":         row.Title,
-			"description":   row.Description,
-			"area_id":       row.AreaID,
-			"project_id":    row.ProjectID,
-			"cadence":       row.Cadence,
-			"target":        row.Target,
-			"schedule_kind": row.ScheduleKind,
-			"weekdays":      row.Weekdays,
-			"start_time":    row.StartTime,
-			"end_time":      row.EndTime,
-			"start_date":    row.StartDate,
-			"archived_at":   row.ArchivedAt,
-			"updated_at":    row.UpdatedAt,
+			"title":                 row.Title,
+			"description":           row.Description,
+			"area_id":               row.AreaID,
+			"project_id":            row.ProjectID,
+			"cadence":               row.Cadence,
+			"target":                row.Target,
+			"schedule_kind":         row.ScheduleKind,
+			"weekdays":              row.Weekdays,
+			"start_time":            row.StartTime,
+			"end_time":              row.EndTime,
+			"reminder_enabled":      row.ReminderEnabled,
+			"reminder_lead_minutes": row.ReminderLeadMinutes,
+			"start_date":            row.StartDate,
+			"archived_at":           row.ArchivedAt,
+			"updated_at":            row.UpdatedAt,
 		}).Error
 }
 

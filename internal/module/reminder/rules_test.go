@@ -232,6 +232,39 @@ func TestComputeDueHabitRules(t *testing.T) {
 		}
 	})
 
+	t.Run("explicitly disabled habit is skipped", func(t *testing.T) {
+		off := base
+		disabled := false
+		off.ReminderEnabled = &disabled
+
+		due := computeDue(testClock(t, "2026-11-09 07:30", loc), loc, settings, ruleData{
+			Habits: []habit.Habit{off},
+		})
+		if len(due) != 0 {
+			t.Fatalf("candidates = %v, want none", due)
+		}
+	})
+
+	t.Run("reminder lead fires before the start time", func(t *testing.T) {
+		lead := int32(15)
+		early := base
+		early.ReminderLeadMinutes = &lead
+
+		due := computeDue(testClock(t, "2026-11-09 06:45", loc), loc, settings, ruleData{
+			Habits: []habit.Habit{early},
+		})
+		if len(due) != 1 || !due[0].At.Equal(testClock(t, "2026-11-09 06:45", loc)) {
+			t.Fatalf("candidates = %+v, want one reminder at 06:45", due)
+		}
+
+		due = computeDue(testClock(t, "2026-11-09 06:44", loc), loc, settings, ruleData{
+			Habits: []habit.Habit{early},
+		})
+		if len(due) != 0 {
+			t.Fatalf("candidates = %v, want none before the lead", due)
+		}
+	})
+
 	t.Run("habit without a start time is ignored", func(t *testing.T) {
 		noTime := base
 		noTime.StartTime = nil

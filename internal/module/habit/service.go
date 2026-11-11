@@ -85,6 +85,11 @@ func (s *Service) Create(ctx context.Context, userID string, input New) (*Habit,
 			return nil, httpx.BadRequest("Use an HH:mm time")
 		}
 	}
+	if input.ReminderLeadMinutes != nil {
+		if err := validateReminderLead(*input.ReminderLeadMinutes); err != nil {
+			return nil, err
+		}
+	}
 
 	startDate := DateOf(time.Now().UTC())
 	if input.StartDate != nil {
@@ -120,19 +125,21 @@ func (s *Service) Create(ctx context.Context, userID string, input New) (*Habit,
 		now := wiretime.Now()
 
 		created = Habit{
-			ID:          ids.New("h"),
-			Title:       strings.TrimSpace(input.Title),
-			Description: input.Description,
-			AreaID:      input.AreaID,
-			ProjectID:   input.ProjectID,
-			Cadence:     "weekly",
-			Target:      1,
-			Schedule:    schedule,
-			StartTime:   input.StartTime,
-			EndTime:     input.EndTime,
-			StartDate:   startDate,
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			ID:                  ids.New("h"),
+			Title:               strings.TrimSpace(input.Title),
+			Description:         input.Description,
+			AreaID:              input.AreaID,
+			ProjectID:           input.ProjectID,
+			Cadence:             "weekly",
+			Target:              1,
+			Schedule:            schedule,
+			StartTime:           input.StartTime,
+			EndTime:             input.EndTime,
+			ReminderEnabled:     input.ReminderEnabled,
+			ReminderLeadMinutes: input.ReminderLeadMinutes,
+			StartDate:           startDate,
+			CreatedAt:           now,
+			UpdatedAt:           now,
 		}
 		if input.Cadence != nil {
 			created.Cadence = *input.Cadence
@@ -208,6 +215,23 @@ func (s *Service) Update(ctx context.Context, userID, id string, patch Update) (
 					return httpx.BadRequest("Use an HH:mm time")
 				}
 				habit.EndTime = &value
+			}
+		}
+		if patch.ReminderEnabled.Set {
+			habit.ReminderEnabled = nil
+			if !patch.ReminderEnabled.Null {
+				value := patch.ReminderEnabled.Value
+				habit.ReminderEnabled = &value
+			}
+		}
+		if patch.ReminderLeadMinutes.Set {
+			habit.ReminderLeadMinutes = nil
+			if !patch.ReminderLeadMinutes.Null {
+				value := patch.ReminderLeadMinutes.Value
+				if err := validateReminderLead(value); err != nil {
+					return err
+				}
+				habit.ReminderLeadMinutes = &value
 			}
 		}
 		if patch.StartDate != nil {
@@ -388,6 +412,16 @@ func (s *Service) RemoveCheckIn(ctx context.Context, userID, habitID, rawDate st
 func DateOf(value time.Time) wiretime.Date {
 	utc := value.UTC()
 	return wiretime.Date(time.Date(utc.Year(), utc.Month(), utc.Day(), 0, 0, 0, 0, time.UTC))
+}
+
+// validateReminderLead keeps the lead inside the same day-scale bound as the
+// global event lead.
+func validateReminderLead(minutes int32) error {
+	if minutes < 0 || minutes > 1440 {
+		return httpx.BadRequest("Reminder lead must be between 0 and 1440 minutes")
+	}
+
+	return nil
 }
 
 func validateSchedule(schedule Schedule) error {

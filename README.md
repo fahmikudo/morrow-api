@@ -167,6 +167,11 @@ wire structs, so a field rename fails this suite and the frontend's copy.
 - Tasks carry optional `startTime` / `endTime` (`HH:mm`) for time boxing. Both
   are independent and clearable with `PATCH {"startTime":null}`; when both are
   present the end must be after the start.
+- Habits carry optional `reminderEnabled` and `reminderLeadMinutes`. `false`
+  suppresses that habit's reminder without removing its `startTime`; absent
+  inherits the global reminder setting. A lead (0–1440) moves the reminder that
+  many minutes before `startTime`. Both keys are clearable with `null`, and a
+  habit still needs a start time to produce a reminder.
 - Temporal columns use native PostgreSQL types: clocks (`events`, `habits`,
   `tasks`, `reminder_settings.task_time`) are `time`, calendar dates are `date`,
   and instants are `timestamptz`. The wire contract is unchanged: `HH:mm`,
@@ -224,8 +229,9 @@ wire structs, so a field rename fails this suite and the frontend's copy.
   existing data, records them in `reminder_deliveries`, and pushes them to
   subscribed devices. Tasks fire at the user's `taskTime` when open and due today
   or earlier; events fire at their start minus `eventLeadMinutes`, with a
-  15-minute catch-up window; habits fire at `startTime` on scheduled days, when
-  there is no check-in yet and the cadence period target is unmet. Dates and
+  15-minute catch-up window; habits fire at `startTime` minus their optional
+  `reminderLeadMinutes` on scheduled days, when `reminderEnabled` is not false,
+  there is no check-in yet, and the cadence period target is unmet. Dates and
   `HH:mm` values are interpreted in `profile.timezone`, then `APP_TIMEZONE`, then
   UTC. `(user_id, kind, ref_id, occurrence_date)` is unique, so a repeated
   tick never sends the same reminder twice.

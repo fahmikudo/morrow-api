@@ -64,40 +64,48 @@ func (s *Schedule) UnmarshalJSON(data []byte) error {
 
 // Habit is the API shape of a habit.
 type Habit struct {
-	ID          string              `json:"id"`
-	Title       string              `json:"title"`
-	Description *string             `json:"description,omitempty"`
-	AreaID      *string             `json:"areaId,omitempty"`
-	ProjectID   *string             `json:"projectId,omitempty"`
-	Cadence     string              `json:"cadence"`
-	Target      int32               `json:"target"`
-	Schedule    Schedule            `json:"schedule"`
-	StartTime   *string             `json:"startTime,omitempty"`
-	EndTime     *string             `json:"endTime,omitempty"`
-	StartDate   wiretime.Date       `json:"startDate"`
-	ArchivedAt  *wiretime.Timestamp `json:"archivedAt,omitempty"`
-	CreatedAt   wiretime.Timestamp  `json:"createdAt"`
-	UpdatedAt   wiretime.Timestamp  `json:"updatedAt"`
+	ID          string   `json:"id"`
+	Title       string   `json:"title"`
+	Description *string  `json:"description,omitempty"`
+	AreaID      *string  `json:"areaId,omitempty"`
+	ProjectID   *string  `json:"projectId,omitempty"`
+	Cadence     string   `json:"cadence"`
+	Target      int32    `json:"target"`
+	Schedule    Schedule `json:"schedule"`
+	StartTime   *string  `json:"startTime,omitempty"`
+	EndTime     *string  `json:"endTime,omitempty"`
+	// ReminderEnabled nil means the global reminder setting decides; false
+	// suppresses this habit's reminder.
+	ReminderEnabled *bool `json:"reminderEnabled,omitempty"`
+	// ReminderLeadMinutes nil means fire at StartTime; otherwise the reminder
+	// moves this many minutes earlier.
+	ReminderLeadMinutes *int32              `json:"reminderLeadMinutes,omitempty"`
+	StartDate           wiretime.Date       `json:"startDate"`
+	ArchivedAt          *wiretime.Timestamp `json:"archivedAt,omitempty"`
+	CreatedAt           wiretime.Timestamp  `json:"createdAt"`
+	UpdatedAt           wiretime.Timestamp  `json:"updatedAt"`
 }
 
 // Row is the persisted shape of a habit.
 type Row struct {
-	ID           string           `gorm:"column:id;primaryKey"`
-	UserID       string           `gorm:"column:user_id"`
-	Title        string           `gorm:"column:title"`
-	Description  *string          `gorm:"column:description"`
-	AreaID       *string          `gorm:"column:area_id"`
-	ProjectID    *string          `gorm:"column:project_id"`
-	Cadence      string           `gorm:"column:cadence"`
-	Target       int32            `gorm:"column:target"`
-	ScheduleKind string           `gorm:"column:schedule_kind"`
-	Weekdays     pgarray.IntArray `gorm:"column:weekdays"`
-	StartTime    *wiretime.Clock  `gorm:"column:start_time"`
-	EndTime      *wiretime.Clock  `gorm:"column:end_time"`
-	StartDate    time.Time        `gorm:"column:start_date"`
-	ArchivedAt   *time.Time       `gorm:"column:archived_at"`
-	CreatedAt    time.Time        `gorm:"column:created_at"`
-	UpdatedAt    time.Time        `gorm:"column:updated_at"`
+	ID                  string           `gorm:"column:id;primaryKey"`
+	UserID              string           `gorm:"column:user_id"`
+	Title               string           `gorm:"column:title"`
+	Description         *string          `gorm:"column:description"`
+	AreaID              *string          `gorm:"column:area_id"`
+	ProjectID           *string          `gorm:"column:project_id"`
+	Cadence             string           `gorm:"column:cadence"`
+	Target              int32            `gorm:"column:target"`
+	ScheduleKind        string           `gorm:"column:schedule_kind"`
+	Weekdays            pgarray.IntArray `gorm:"column:weekdays"`
+	StartTime           *wiretime.Clock  `gorm:"column:start_time"`
+	EndTime             *wiretime.Clock  `gorm:"column:end_time"`
+	ReminderEnabled     *bool            `gorm:"column:reminder_enabled"`
+	ReminderLeadMinutes *int32           `gorm:"column:reminder_lead_minutes"`
+	StartDate           time.Time        `gorm:"column:start_date"`
+	ArchivedAt          *time.Time       `gorm:"column:archived_at"`
+	CreatedAt           time.Time        `gorm:"column:created_at"`
+	UpdatedAt           time.Time        `gorm:"column:updated_at"`
 }
 
 // TableName keeps the Gorm mapping explicit.
@@ -119,20 +127,22 @@ func (r Row) ToWire() Habit {
 	}
 
 	return Habit{
-		ID:          r.ID,
-		Title:       r.Title,
-		Description: r.Description,
-		AreaID:      r.AreaID,
-		ProjectID:   r.ProjectID,
-		Cadence:     r.Cadence,
-		Target:      r.Target,
-		Schedule:    schedule,
-		StartTime:   wiretime.ClockText(r.StartTime),
-		EndTime:     wiretime.ClockText(r.EndTime),
-		StartDate:   wiretime.Date(r.StartDate),
-		ArchivedAt:  archivedAt,
-		CreatedAt:   wiretime.Timestamp(r.CreatedAt),
-		UpdatedAt:   wiretime.Timestamp(r.UpdatedAt),
+		ID:                  r.ID,
+		Title:               r.Title,
+		Description:         r.Description,
+		AreaID:              r.AreaID,
+		ProjectID:           r.ProjectID,
+		Cadence:             r.Cadence,
+		Target:              r.Target,
+		Schedule:            schedule,
+		StartTime:           wiretime.ClockText(r.StartTime),
+		EndTime:             wiretime.ClockText(r.EndTime),
+		ReminderEnabled:     r.ReminderEnabled,
+		ReminderLeadMinutes: r.ReminderLeadMinutes,
+		StartDate:           wiretime.Date(r.StartDate),
+		ArchivedAt:          archivedAt,
+		CreatedAt:           wiretime.Timestamp(r.CreatedAt),
+		UpdatedAt:           wiretime.Timestamp(r.UpdatedAt),
 	}
 }
 
@@ -147,6 +157,8 @@ func (r *Row) Load(h Habit) {
 	r.Target = h.Target
 	r.StartTime = wiretime.ClockValue(h.StartTime)
 	r.EndTime = wiretime.ClockValue(h.EndTime)
+	r.ReminderEnabled = h.ReminderEnabled
+	r.ReminderLeadMinutes = h.ReminderLeadMinutes
 	r.StartDate = h.StartDate.Time()
 	r.CreatedAt = h.CreatedAt.Time()
 	r.UpdatedAt = h.UpdatedAt.Time()
@@ -201,35 +213,42 @@ func (r CheckInRow) ToWire() CheckIn {
 
 // New is the create body.
 type New struct {
-	Title       string    `json:"title"`
-	Description *string   `json:"description"`
-	AreaID      *string   `json:"areaId"`
-	ProjectID   *string   `json:"projectId"`
-	Cadence     *string   `json:"cadence"`
-	Target      *int32    `json:"target"`
-	Schedule    *Schedule `json:"schedule"`
-	StartTime   *string   `json:"startTime"`
-	EndTime     *string   `json:"endTime"`
-	StartDate   *string   `json:"startDate"`
+	Title               string    `json:"title"`
+	Description         *string   `json:"description"`
+	AreaID              *string   `json:"areaId"`
+	ProjectID           *string   `json:"projectId"`
+	Cadence             *string   `json:"cadence"`
+	Target              *int32    `json:"target"`
+	Schedule            *Schedule `json:"schedule"`
+	StartTime           *string   `json:"startTime"`
+	EndTime             *string   `json:"endTime"`
+	ReminderEnabled     *bool     `json:"reminderEnabled"`
+	ReminderLeadMinutes *int32    `json:"reminderLeadMinutes"`
+	StartDate           *string   `json:"startDate"`
 }
 
 // Update is the PATCH body; five fields accept an explicit null.
 type Update struct {
-	Title       *string           `json:"title"`
-	Description *string           `json:"description"`
-	Cadence     *string           `json:"cadence"`
-	Target      *float64          `json:"target"`
-	Schedule    *Schedule         `json:"schedule"`
-	StartDate   *string           `json:"startDate"`
-	AreaID      httpx.Opt[string] `json:"areaId"`
-	ProjectID   httpx.Opt[string] `json:"projectId"`
-	ArchivedAt  httpx.Opt[string] `json:"archivedAt"`
-	StartTime   httpx.Opt[string] `json:"startTime"`
-	EndTime     httpx.Opt[string] `json:"endTime"`
+	Title               *string           `json:"title"`
+	Description         *string           `json:"description"`
+	Cadence             *string           `json:"cadence"`
+	Target              *float64          `json:"target"`
+	Schedule            *Schedule         `json:"schedule"`
+	StartDate           *string           `json:"startDate"`
+	AreaID              httpx.Opt[string] `json:"areaId"`
+	ProjectID           httpx.Opt[string] `json:"projectId"`
+	ArchivedAt          httpx.Opt[string] `json:"archivedAt"`
+	StartTime           httpx.Opt[string] `json:"startTime"`
+	EndTime             httpx.Opt[string] `json:"endTime"`
+	ReminderEnabled     httpx.Opt[bool]   `json:"reminderEnabled"`
+	ReminderLeadMinutes httpx.Opt[int32]  `json:"reminderLeadMinutes"`
 }
 
 // UpdateOptions is the body policy for PATCH /habits.
 var UpdateOptions = httpx.Options{
-	Nullable: []string{"areaId", "projectId", "archivedAt", "startTime", "endTime"},
-	Strict:   true,
+	Nullable: []string{
+		"areaId", "projectId", "archivedAt", "startTime", "endTime",
+		"reminderEnabled", "reminderLeadMinutes",
+	},
+	Strict: true,
 }

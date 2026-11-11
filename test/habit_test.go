@@ -52,6 +52,52 @@ func TestHabitDeleteCascadesCheckInsAndCheckInIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestHabitReminderSettingsRoundTrip(t *testing.T) {
+	app := New(t)
+
+	status, habit := app.Post(t, "/api/v1/habits",
+		`{"title":"Walk","startTime":"08:00","reminderEnabled":false,"reminderLeadMinutes":15}`)
+	if status != 201 {
+		t.Fatalf("create habit status = %d, want 201 (body %v)", status, habit)
+	}
+	if habit["reminderEnabled"] != false {
+		t.Errorf("reminderEnabled = %v, want false", habit["reminderEnabled"])
+	}
+	if habit["reminderLeadMinutes"] != float64(15) {
+		t.Errorf("reminderLeadMinutes = %v, want 15", habit["reminderLeadMinutes"])
+	}
+	habitID := StringField(t, habit, "id")
+
+	status, fetched := app.Get(t, "/api/v1/habits/"+habitID)
+	if status != 200 {
+		t.Fatalf("get habit status = %d, want 200", status)
+	}
+	if fetched["reminderEnabled"] != false || fetched["reminderLeadMinutes"] != float64(15) {
+		t.Errorf("fetched reminder settings = %v/%v, want false/15",
+			fetched["reminderEnabled"], fetched["reminderLeadMinutes"])
+	}
+
+	status, updated := app.Patch(t, "/api/v1/habits/"+habitID,
+		`{"reminderEnabled":null,"reminderLeadMinutes":null}`)
+	if status != 200 {
+		t.Fatalf("patch habit status = %d, want 200 (body %v)", status, updated)
+	}
+	if _, ok := updated["reminderEnabled"]; ok {
+		t.Errorf("reminderEnabled = %v, want absent after clear", updated["reminderEnabled"])
+	}
+	if _, ok := updated["reminderLeadMinutes"]; ok {
+		t.Errorf("reminderLeadMinutes = %v, want absent after clear", updated["reminderLeadMinutes"])
+	}
+
+	status, body := app.Patch(t, "/api/v1/habits/"+habitID, `{"reminderLeadMinutes":1441}`)
+	if status != 400 {
+		t.Errorf("out-of-range lead status = %d, want 400", status)
+	}
+	if msg := ErrorMessage(body); msg != "Reminder lead must be between 0 and 1440 minutes" {
+		t.Errorf("out-of-range lead error = %q", msg)
+	}
+}
+
 func TestHabitArchiveAndRestoreAreIdempotent(t *testing.T) {
 	app := New(t)
 

@@ -106,6 +106,10 @@ func computeDue(now time.Time, loc *time.Location, settings Settings, data ruleD
 			continue
 		}
 
+		if item.ReminderEnabled != nil && !*item.ReminderEnabled {
+			continue
+		}
+
 		if item.StartDate.String() > today {
 			continue
 		}
@@ -124,7 +128,15 @@ func computeDue(now time.Time, loc *time.Location, settings Settings, data ruleD
 		}
 
 		at, ok := clockOn(today, *item.StartTime, loc)
-		if !ok || now.Before(at) {
+		if !ok {
+			continue
+		}
+
+		if item.ReminderLeadMinutes != nil {
+			at = at.Add(-time.Duration(*item.ReminderLeadMinutes) * time.Minute)
+		}
+
+		if now.Before(at) {
 			continue
 		}
 

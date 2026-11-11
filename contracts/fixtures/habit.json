@@ -9,6 +9,8 @@
   "schedule": { "kind": "fixed", "weekdays": [1, 2, 3, 4] },
   "startTime": "07:30",
   "endTime": "07:45",
+  "reminderEnabled": true,
+  "reminderLeadMinutes": 15,
   "startDate": "2026-10-01",
   "archivedAt": "2026-11-08T03:15:27.412Z",
   "createdAt": "2026-10-01T01:00:00.000Z",
