@@ -17,8 +17,11 @@ import (
 	"morrow-api/internal/config"
 )
 
-// Scope requests read/write access to events plus the account email.
-const Scope = "openid email https://www.googleapis.com/auth/calendar.events"
+// Scope requests read/write access to events, read access to the calendar
+// list (the picker calls CalendarList.list), plus the account email.
+const Scope = "openid email " +
+	"https://www.googleapis.com/auth/calendar.events " +
+	"https://www.googleapis.com/auth/calendar.calendarlist.readonly"
 
 // ErrGone means the incremental sync token is no longer valid.
 var ErrGone = errors.New("google: sync token expired")
