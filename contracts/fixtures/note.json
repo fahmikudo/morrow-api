@@ -1,0 +1,10 @@
+{
+  "id": "n_9f8e7d6c",
+  "title": "Warehouse notes",
+  "content": "<p>Nightly sync runs at 02:00</p>",
+  "tags": ["warehouse", "ops"],
+  "projectId": "p1",
+  "areaId": "a1",
+  "createdAt": "2026-10-02T01:00:00.000Z",
+  "updatedAt": "2026-11-07T03:15:27.412Z"
+}

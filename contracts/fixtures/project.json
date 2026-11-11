@@ -1,0 +1,10 @@
+{
+  "id": "p1",
+  "key": "DWP",
+  "name": "Data Warehouse Platform",
+  "description": "<p>Rebuild the warehouse</p>",
+  "status": "active",
+  "areaId": "a1",
+  "createdAt": "2026-10-01T01:00:00.000Z",
+  "updatedAt": "2026-11-08T03:15:27.412Z"
+}

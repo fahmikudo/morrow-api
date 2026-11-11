@@ -1,0 +1,12 @@
+{
+  "id": "e_1f2e3d4c",
+  "title": "Warehouse review",
+  "date": "2026-11-10",
+  "startTime": "09:00",
+  "endTime": "10:00",
+  "notes": "Bring the sync metrics",
+  "projectId": "p1",
+  "createdAt": "2026-11-01T01:00:00.000Z",
+  "updatedAt": "2026-11-08T03:15:27.412Z",
+  "source": "local"
+}

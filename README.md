@@ -143,8 +143,8 @@ so the configured role needs `CREATEDB`. `TEST_DATABASE_URL` wins over
 opt-in, create/update/delete, 401 re-login, reconciliation, and timebox validation.
 `test/calendar_test.go` runs the full OAuth, pull, push, last-write-wins, calendar
 picker, and disconnect flows against a fake Google server. `test/contracts_test.go`
-round-trips `../morrow-web/contracts/fixtures/*.json` through the
-wire structs, so a field rename fails this suite and the frontend's.
+round-trips `contracts/fixtures/*.json` through the
+wire structs, so a field rename fails this suite and the frontend's copy.
 
 ## Behaviour
 
@@ -368,7 +368,8 @@ Connect from Settings → Integrations → Google Calendar. The first import cov
 
 ## Contracts
 
-`../morrow-web/contracts/fixtures/*.json` are the shared wire fixtures.
-`test/contracts_test.go` round-trips every fixture through the Go wire structs
-and the frontend test does the same with the TypeScript types, so a field rename
-breaks both suites.
+`contracts/fixtures/*.json` are the wire fixtures, duplicated per repo so a
+standalone checkout can run its suite. `test/contracts_test.go` round-trips every
+fixture through the Go wire structs and the frontend test does the same with the
+TypeScript types, so a field rename must update both copies and breaks both
+suites.

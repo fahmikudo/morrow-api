@@ -1,0 +1,44 @@
+[
+  {
+    "kind": "task",
+    "id": "t_1a2b3c4d",
+    "title": "Ship warehouse sync",
+    "subtitle": "DWP-12 · Data Warehouse Platform",
+    "href": "/tasks"
+  },
+  {
+    "kind": "note",
+    "id": "n_9f8e7d6c",
+    "title": "Warehouse notes",
+    "subtitle": "Nightly sync runs at 02:00",
+    "href": "/knowledge/n_9f8e7d6c"
+  },
+  {
+    "kind": "project",
+    "id": "p1",
+    "title": "Data Warehouse Platform",
+    "subtitle": "DWP · Rebuild the warehouse",
+    "href": "/projects/p1"
+  },
+  {
+    "kind": "inbox",
+    "id": "i_55667788",
+    "title": "Ask about the nightly job",
+    "subtitle": "Check the retry budget",
+    "href": "/inbox"
+  },
+  {
+    "kind": "habit",
+    "id": "h_7a6b5c4d",
+    "title": "Morning review",
+    "subtitle": "4×/week · Data Warehouse Platform",
+    "href": "/habits"
+  },
+  {
+    "kind": "area",
+    "id": "a1",
+    "title": "Work",
+    "subtitle": "Professional commitments",
+    "href": "/areas/a1"
+  }
+]
