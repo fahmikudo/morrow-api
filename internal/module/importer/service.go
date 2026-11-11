@@ -323,6 +323,9 @@ func Validate(payload Database) error {
 				return missing("projectId", current.ID)
 			}
 		}
+		if current.EndDate != nil && current.EndDate.String() < current.StartDate.String() {
+			return httpx.BadRequest("Invalid import: end date before start date for " + current.ID)
+		}
 	}
 
 	for _, current := range payload.HabitCheckIns {

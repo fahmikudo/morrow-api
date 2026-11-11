@@ -100,6 +100,18 @@ func (s *Service) Create(ctx context.Context, userID string, input New) (*Habit,
 		startDate = parsed
 	}
 
+	var endDate *wiretime.Date
+	if input.EndDate != nil {
+		parsed, err := wiretime.ParseDate(*input.EndDate)
+		if err != nil {
+			return nil, httpx.BadRequest("Use a YYYY-MM-DD date")
+		}
+		if parsed.String() < startDate.String() {
+			return nil, httpx.BadRequest("End date must be on or after the start date")
+		}
+		endDate = &parsed
+	}
+
 	schedule := Schedule{Kind: "flexible"}
 	if input.Schedule != nil {
 		schedule = *input.Schedule
@@ -138,6 +150,7 @@ func (s *Service) Create(ctx context.Context, userID string, input New) (*Habit,
 			ReminderEnabled:     input.ReminderEnabled,
 			ReminderLeadMinutes: input.ReminderLeadMinutes,
 			StartDate:           startDate,
+			EndDate:             endDate,
 			CreatedAt:           now,
 			UpdatedAt:           now,
 		}
@@ -240,6 +253,19 @@ func (s *Service) Update(ctx context.Context, userID, id string, patch Update) (
 				return httpx.BadRequest("Use a YYYY-MM-DD date")
 			}
 			habit.StartDate = parsed
+		}
+		if patch.EndDate.Set {
+			habit.EndDate = nil
+			if !patch.EndDate.Null {
+				parsed, err := wiretime.ParseDate(patch.EndDate.Value)
+				if err != nil {
+					return httpx.BadRequest("Use a YYYY-MM-DD date")
+				}
+				habit.EndDate = &parsed
+			}
+		}
+		if habit.EndDate != nil && habit.EndDate.String() < habit.StartDate.String() {
+			return httpx.BadRequest("End date must be on or after the start date")
 		}
 		if patch.AreaID.Set {
 			habit.AreaID = nil

@@ -12,6 +12,7 @@
   "reminderEnabled": true,
   "reminderLeadMinutes": 15,
   "startDate": "2026-10-01",
+  "endDate": "2026-12-31",
   "archivedAt": "2026-11-08T03:15:27.412Z",
   "createdAt": "2026-10-01T01:00:00.000Z",
   "updatedAt": "2026-11-08T03:15:27.412Z"

@@ -77,8 +77,7 @@ win over the file.
 | `PEPY_USER_ID` / `PEPY_PROJECT_ID` | no | `820` / `5674` | Hardcoded Pepy target |
 | `PEPY_LOGIN_INTERVAL_SECONDS` | no | `259200` | Re-login cadence (3 days) |
 | `PEPY_SYNC_SECONDS` | no | `300` | Task reconciliation/token-check interval |
-| `S3_ENDPOINT` | no | empty | R2 endpoint `https://<account>.r2.cloudflarestorage.com`; empty disables attachments |
-| `S3_PUBLIC_ENDPOINT` | no | `S3_ENDPOINT` | Browser-facing endpoint used only when signing URLs |
+| `S3_ENDPOINT` | no | empty | R2 endpoint `https://<account>.r2.cloudflarestorage.com`, optionally ending in `/<bucket>`; empty disables attachments |
 | `S3_REGION` | no | `auto` | R2 always uses `auto` |
 | `S3_BUCKET` | no | `second-brain` | Private attachment bucket |
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | no | empty | Bucket-scoped R2 API token |
@@ -172,6 +171,10 @@ wire structs, so a field rename fails this suite and the frontend's copy.
   inherits the global reminder setting. A lead (0–1440) moves the reminder that
   many minutes before `startTime`. Both keys are clearable with `null`, and a
   habit still needs a start time to produce a reminder.
+- Habits have a required `startDate` and an optional inclusive `endDate`. Due
+  checks, reminders, scheduled occurrences, progress, and streaks only count
+  inside that range; `PATCH {"endDate":null}` reopens the habit. Validation
+  rejects an end date earlier than the start date.
 - Temporal columns use native PostgreSQL types: clocks (`events`, `habits`,
   `tasks`, `reminder_settings.task_time`) are `time`, calendar dates are `date`,
   and instants are `timestamptz`. The wire contract is unchanged: `HH:mm`,
@@ -230,8 +233,9 @@ wire structs, so a field rename fails this suite and the frontend's copy.
   subscribed devices. Tasks fire at the user's `taskTime` when open and due today
   or earlier; events fire at their start minus `eventLeadMinutes`, with a
   15-minute catch-up window; habits fire at `startTime` minus their optional
-  `reminderLeadMinutes` on scheduled days, when `reminderEnabled` is not false,
-  there is no check-in yet, and the cadence period target is unmet. Dates and
+  `reminderLeadMinutes` on scheduled days within `startDate`–`endDate`, when
+  `reminderEnabled` is not false, there is no check-in yet, and the cadence
+  period target is unmet. Dates and
   `HH:mm` values are interpreted in `profile.timezone`, then `APP_TIMEZONE`, then
   UTC. `(user_id, kind, ref_id, occurrence_date)` is unique, so a repeated
   tick never sends the same reminder twice.
@@ -267,6 +271,8 @@ Cloudflare R2 is used directly for object storage:
 ```
 
 Keep the bucket private; the API signs every read. Allow browser CORS for `PUT`/`GET` on R2 directly if direct browser uploads are enabled.
+
+Presigned URLs must use the R2 S3 API endpoint (`<bucket>.<account>.r2.cloudflarestorage.com`); R2 does not support presigned URLs on custom domains. `S3_ENDPOINT` may include the bucket as a trailing path — it is stripped before signing.
 
 ## Auth
 

@@ -265,6 +265,32 @@ func TestComputeDueHabitRules(t *testing.T) {
 		}
 	})
 
+	t.Run("end date includes its final day", func(t *testing.T) {
+		lastDay := testDate(t, "2026-11-09")
+		ending := base
+		ending.EndDate = &lastDay
+
+		due := computeDue(testClock(t, "2026-11-09 07:30", loc), loc, settings, ruleData{
+			Habits: []habit.Habit{ending},
+		})
+		if len(due) != 1 {
+			t.Fatalf("candidates = %v, want one reminder on the end date", due)
+		}
+	})
+
+	t.Run("past end date skips the reminder", func(t *testing.T) {
+		yesterday := testDate(t, "2026-11-08")
+		ended := base
+		ended.EndDate = &yesterday
+
+		due := computeDue(testClock(t, "2026-11-09 07:30", loc), loc, settings, ruleData{
+			Habits: []habit.Habit{ended},
+		})
+		if len(due) != 0 {
+			t.Fatalf("candidates = %v, want none after the end date", due)
+		}
+	})
+
 	t.Run("habit without a start time is ignored", func(t *testing.T) {
 		noTime := base
 		noTime.StartTime = nil

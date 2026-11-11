@@ -251,3 +251,31 @@ func TestImportRejectsDuplicateCheckIns(t *testing.T) {
 		t.Errorf("duplicate check-in error = %q, want %q", msg, "Invalid import: duplicate check-in for h_1 on 2026-01-02")
 	}
 }
+
+func TestImportRejectsEndDateBeforeStartDate(t *testing.T) {
+	app := New(t)
+
+	payload := `{
+		"version": 6,
+		"inbox": [], "tasks": [], "projects": [], "notes": [], "events": [], "areas": [],
+		"habits": [{ "id": "h_1", "title": "Read", "cadence": "daily", "target": 1,
+					 "schedule": { "kind": "flexible" }, "startDate": "2026-01-02",
+					 "endDate": "2026-01-01",
+					 "createdAt": "2026-01-01T00:00:00.000Z",
+					 "updatedAt": "2026-01-01T00:00:00.000Z" }],
+		"habitCheckIns": [],
+		"profile": {
+			"id": "me", "name": "Raka Pratama", "email": "raka@example.com",
+			"joinedAt": "2026-01-01T00:00:00.000Z", "updatedAt": "2026-01-01T00:00:00.000Z"
+		},
+		"counters": {}
+	}`
+
+	status, body := app.Post(t, "/api/v1/import", payload)
+	if status != http.StatusBadRequest {
+		t.Errorf("end before start status = %d, want %d", status, http.StatusBadRequest)
+	}
+	if msg := ErrorMessage(body); msg != "Invalid import: end date before start date for h_1" {
+		t.Errorf("end before start error = %q", msg)
+	}
+}

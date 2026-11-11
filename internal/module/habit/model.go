@@ -79,11 +79,13 @@ type Habit struct {
 	ReminderEnabled *bool `json:"reminderEnabled,omitempty"`
 	// ReminderLeadMinutes nil means fire at StartTime; otherwise the reminder
 	// moves this many minutes earlier.
-	ReminderLeadMinutes *int32              `json:"reminderLeadMinutes,omitempty"`
-	StartDate           wiretime.Date       `json:"startDate"`
-	ArchivedAt          *wiretime.Timestamp `json:"archivedAt,omitempty"`
-	CreatedAt           wiretime.Timestamp  `json:"createdAt"`
-	UpdatedAt           wiretime.Timestamp  `json:"updatedAt"`
+	ReminderLeadMinutes *int32        `json:"reminderLeadMinutes,omitempty"`
+	StartDate           wiretime.Date `json:"startDate"`
+	// EndDate is the last day the habit counts, inclusive. Nil means ongoing.
+	EndDate    *wiretime.Date      `json:"endDate,omitempty"`
+	ArchivedAt *wiretime.Timestamp `json:"archivedAt,omitempty"`
+	CreatedAt  wiretime.Timestamp  `json:"createdAt"`
+	UpdatedAt  wiretime.Timestamp  `json:"updatedAt"`
 }
 
 // Row is the persisted shape of a habit.
@@ -103,6 +105,7 @@ type Row struct {
 	ReminderEnabled     *bool            `gorm:"column:reminder_enabled"`
 	ReminderLeadMinutes *int32           `gorm:"column:reminder_lead_minutes"`
 	StartDate           time.Time        `gorm:"column:start_date"`
+	EndDate             *time.Time       `gorm:"column:end_date"`
 	ArchivedAt          *time.Time       `gorm:"column:archived_at"`
 	CreatedAt           time.Time        `gorm:"column:created_at"`
 	UpdatedAt           time.Time        `gorm:"column:updated_at"`
@@ -126,6 +129,12 @@ func (r Row) ToWire() Habit {
 		archivedAt = &value
 	}
 
+	var endDate *wiretime.Date
+	if r.EndDate != nil {
+		value := wiretime.Date(*r.EndDate)
+		endDate = &value
+	}
+
 	return Habit{
 		ID:                  r.ID,
 		Title:               r.Title,
@@ -140,6 +149,7 @@ func (r Row) ToWire() Habit {
 		ReminderEnabled:     r.ReminderEnabled,
 		ReminderLeadMinutes: r.ReminderLeadMinutes,
 		StartDate:           wiretime.Date(r.StartDate),
+		EndDate:             endDate,
 		ArchivedAt:          archivedAt,
 		CreatedAt:           wiretime.Timestamp(r.CreatedAt),
 		UpdatedAt:           wiretime.Timestamp(r.UpdatedAt),
@@ -160,6 +170,12 @@ func (r *Row) Load(h Habit) {
 	r.ReminderEnabled = h.ReminderEnabled
 	r.ReminderLeadMinutes = h.ReminderLeadMinutes
 	r.StartDate = h.StartDate.Time()
+	if h.EndDate != nil {
+		value := h.EndDate.Time()
+		r.EndDate = &value
+	} else {
+		r.EndDate = nil
+	}
 	r.CreatedAt = h.CreatedAt.Time()
 	r.UpdatedAt = h.UpdatedAt.Time()
 
@@ -225,6 +241,7 @@ type New struct {
 	ReminderEnabled     *bool     `json:"reminderEnabled"`
 	ReminderLeadMinutes *int32    `json:"reminderLeadMinutes"`
 	StartDate           *string   `json:"startDate"`
+	EndDate             *string   `json:"endDate"`
 }
 
 // Update is the PATCH body; five fields accept an explicit null.
@@ -242,13 +259,14 @@ type Update struct {
 	EndTime             httpx.Opt[string] `json:"endTime"`
 	ReminderEnabled     httpx.Opt[bool]   `json:"reminderEnabled"`
 	ReminderLeadMinutes httpx.Opt[int32]  `json:"reminderLeadMinutes"`
+	EndDate             httpx.Opt[string] `json:"endDate"`
 }
 
 // UpdateOptions is the body policy for PATCH /habits.
 var UpdateOptions = httpx.Options{
 	Nullable: []string{
 		"areaId", "projectId", "archivedAt", "startTime", "endTime",
-		"reminderEnabled", "reminderLeadMinutes",
+		"reminderEnabled", "reminderLeadMinutes", "endDate",
 	},
 	Strict: true,
 }

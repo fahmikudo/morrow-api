@@ -45,7 +45,6 @@ type Config struct {
 	PepyLoginIntervalSeconds int
 	PepySyncSeconds          int
 	S3Endpoint               string
-	S3PublicEndpoint         string
 	S3Region                 string
 	S3Bucket                 string
 	S3AccessKeyID            string
@@ -106,12 +105,11 @@ func Load() (*Config, error) {
 	v.SetDefault("PEPY_LOGIN_INTERVAL_SECONDS", 259200)
 	v.SetDefault("PEPY_SYNC_SECONDS", 300)
 	v.SetDefault("S3_ENDPOINT", "")
-	v.SetDefault("S3_PUBLIC_ENDPOINT", "")
-	v.SetDefault("S3_REGION", "us-east-1")
+	v.SetDefault("S3_REGION", "auto")
 	v.SetDefault("S3_BUCKET", "second-brain")
 	v.SetDefault("S3_ACCESS_KEY_ID", "")
 	v.SetDefault("S3_SECRET_ACCESS_KEY", "")
-	v.SetDefault("S3_FORCE_PATH_STYLE", true)
+	v.SetDefault("S3_FORCE_PATH_STYLE", false)
 	v.SetDefault("S3_AUTO_CREATE_BUCKET", false)
 	v.SetDefault("ATTACHMENT_URL_TTL_SECONDS", 900)
 	v.SetDefault("LOG_LEVEL", "info")
@@ -152,7 +150,6 @@ func Load() (*Config, error) {
 		PepyLoginIntervalSeconds: v.GetInt("PEPY_LOGIN_INTERVAL_SECONDS"),
 		PepySyncSeconds:          v.GetInt("PEPY_SYNC_SECONDS"),
 		S3Endpoint:               strings.TrimRight(v.GetString("S3_ENDPOINT"), "/"),
-		S3PublicEndpoint:         strings.TrimRight(v.GetString("S3_PUBLIC_ENDPOINT"), "/"),
 		S3Region:                 strings.TrimSpace(v.GetString("S3_REGION")),
 		S3Bucket:                 strings.TrimSpace(v.GetString("S3_BUCKET")),
 		S3AccessKeyID:            strings.TrimSpace(v.GetString("S3_ACCESS_KEY_ID")),

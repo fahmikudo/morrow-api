@@ -98,6 +98,36 @@ func TestHabitReminderSettingsRoundTrip(t *testing.T) {
 	}
 }
 
+func TestHabitEndDateRoundTrip(t *testing.T) {
+	app := New(t)
+
+	status, habit := app.Post(t, "/api/v1/habits",
+		`{"title":"Challenge","startDate":"2026-11-01","endDate":"2026-11-30"}`)
+	if status != 201 {
+		t.Fatalf("create habit status = %d, want 201 (body %v)", status, habit)
+	}
+	if habit["endDate"] != "2026-11-30" {
+		t.Errorf("endDate = %v, want 2026-11-30", habit["endDate"])
+	}
+	habitID := StringField(t, habit, "id")
+
+	status, updated := app.Patch(t, "/api/v1/habits/"+habitID, `{"endDate":null}`)
+	if status != 200 {
+		t.Fatalf("clear end date status = %d, want 200 (body %v)", status, updated)
+	}
+	if value, ok := updated["endDate"]; ok {
+		t.Errorf("endDate = %v, want absent after clear", value)
+	}
+
+	status, body := app.Patch(t, "/api/v1/habits/"+habitID, `{"endDate":"2026-10-31"}`)
+	if status != 400 {
+		t.Errorf("end before start status = %d, want 400", status)
+	}
+	if msg := ErrorMessage(body); msg != "End date must be on or after the start date" {
+		t.Errorf("end before start error = %q", msg)
+	}
+}
+
 func TestHabitArchiveAndRestoreAreIdempotent(t *testing.T) {
 	app := New(t)
 

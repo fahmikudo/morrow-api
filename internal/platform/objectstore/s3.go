@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -59,7 +61,12 @@ func NewS3(ctx context.Context, cfg *config.Config) (*S3, error) {
 
 	region := cfg.S3Region
 	if region == "" {
-		region = "us-east-1"
+		region = "auto"
+	}
+
+	opsEndpoint, err := normalizeEndpoint(cfg.S3Endpoint, cfg.S3Bucket)
+	if err != nil {
+		return nil, err
 	}
 
 	base := aws.Config{
@@ -68,17 +75,13 @@ func NewS3(ctx context.Context, cfg *config.Config) (*S3, error) {
 		HTTPClient:  &http.Client{Timeout: 30 * time.Second},
 	}
 
-	ops := newClient(base, cfg.S3Endpoint, cfg.S3ForcePathStyle)
+	ops := newClient(base, opsEndpoint, cfg.S3ForcePathStyle)
 
-	publicEndpoint := cfg.S3PublicEndpoint
-	if publicEndpoint == "" {
-		publicEndpoint = cfg.S3Endpoint
-	}
-	public := newClient(base, publicEndpoint, cfg.S3ForcePathStyle)
-
+	// R2 rejects presigned URLs on custom domains, so uploads and downloads
+	// always sign against the S3 API endpoint.
 	store := &S3{
 		ops:     ops,
-		presign: s3.NewPresignClient(public),
+		presign: s3.NewPresignClient(ops),
 		bucket:  cfg.S3Bucket,
 	}
 	if cfg.S3AutoCreateBucket {
@@ -90,6 +93,32 @@ func NewS3(ctx context.Context, cfg *config.Config) (*S3, error) {
 	}
 
 	return store, nil
+}
+
+// normalizeEndpoint accepts the host form users paste from the dashboard
+// (`account.r2.cloudflarestorage.com`) and adds the scheme the AWS SDK
+// requires. A trailing path equal to the bucket is accepted and removed
+// because the bucket is supplied separately to every operation.
+func normalizeEndpoint(raw, bucket string) (string, error) {
+	value := strings.TrimRight(strings.TrimSpace(raw), "/")
+	if value == "" {
+		return "", errors.New("object storage endpoint is empty")
+	}
+	if !strings.Contains(value, "://") {
+		value = "https://" + value
+	}
+
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return "", fmt.Errorf("invalid object storage endpoint %q", raw)
+	}
+	if parsed.Path != "" && parsed.Path != "/" {
+		if strings.Trim(parsed.Path, "/") != bucket {
+			return "", fmt.Errorf("object storage endpoint must not include a path unless it is the bucket: %q", raw)
+		}
+	}
+
+	return parsed.Scheme + "://" + parsed.Host, nil
 }
 
 func newClient(cfg aws.Config, endpoint string, pathStyle bool) *s3.Client {

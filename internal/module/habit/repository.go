@@ -88,6 +88,7 @@ func (r *Repository) Save(ctx context.Context, tx *gorm.DB, row Row) error {
 			"reminder_enabled":      row.ReminderEnabled,
 			"reminder_lead_minutes": row.ReminderLeadMinutes,
 			"start_date":            row.StartDate,
+			"end_date":              row.EndDate,
 			"archived_at":           row.ArchivedAt,
 			"updated_at":            row.UpdatedAt,
 		}).Error

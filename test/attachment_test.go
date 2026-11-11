@@ -76,7 +76,6 @@ func (f *fakeS3) server(t *testing.T) *httptest.Server {
 
 func attachmentConfig(cfg *config.Config, endpoint string) {
 	cfg.S3Endpoint = endpoint
-	cfg.S3PublicEndpoint = endpoint
 	cfg.S3Region = "us-east-1"
 	cfg.S3Bucket = "test-bucket"
 	cfg.S3AccessKeyID = "test"

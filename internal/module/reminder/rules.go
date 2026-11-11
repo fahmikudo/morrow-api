@@ -114,6 +114,10 @@ func computeDue(now time.Time, loc *time.Location, settings Settings, data ruleD
 			continue
 		}
 
+		if item.EndDate != nil && item.EndDate.String() < today {
+			continue
+		}
+
 		if !scheduledOn(item, today, loc) {
 			continue
 		}
