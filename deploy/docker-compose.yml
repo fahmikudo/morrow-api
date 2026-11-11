@@ -1,0 +1,66 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: morrow-api-db
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-secondbrain}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-secondbrain}
+
+    # Persistent and never published: only the api container reaches it over
+    # the compose network.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api:
+    # Pinned by deploy.sh through MORROW_API_IMAGE_TAG. It must never float:
+    # a stack restart must not silently pick up a different commit.
+    image: ghcr.io/fahmikudo/morrow-api:${MORROW_API_IMAGE_TAG:?set MORROW_API_IMAGE_TAG in .env}
+    container_name: morrow-api
+    restart: unless-stopped
+
+    # DATABASE_URL, R2 credentials, VAPID keys and the rest live here, mode 600.
+    env_file: .env
+
+    environment:
+      # Inside the container the API must accept connections on every
+      # interface; the host port below keeps it off the public internet.
+      BIND_ADDR: 0.0.0.0:8080
+
+    # Loopback only. The host's nginx is the single way in.
+    ports:
+      - "127.0.0.1:${APP_PORT:-8990}:8080"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  pgdata:

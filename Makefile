@@ -38,9 +38,6 @@ db-reset:
 db:
 	docker compose up -d db
 
-storage:
-	docker compose up -d rustfs
-
 vapid:
 	go run ./cmd/vapid
 

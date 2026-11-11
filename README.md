@@ -77,13 +77,13 @@ win over the file.
 | `PEPY_USER_ID` / `PEPY_PROJECT_ID` | no | `820` / `5674` | Hardcoded Pepy target |
 | `PEPY_LOGIN_INTERVAL_SECONDS` | no | `259200` | Re-login cadence (3 days) |
 | `PEPY_SYNC_SECONDS` | no | `300` | Task reconciliation/token-check interval |
-| `S3_ENDPOINT` | no | empty | S3-compatible API endpoint; empty disables attachments |
+| `S3_ENDPOINT` | no | empty | R2 endpoint `https://<account>.r2.cloudflarestorage.com`; empty disables attachments |
 | `S3_PUBLIC_ENDPOINT` | no | `S3_ENDPOINT` | Browser-facing endpoint used only when signing URLs |
-| `S3_REGION` | no | `us-east-1` | `auto` for R2 |
+| `S3_REGION` | no | `auto` | R2 always uses `auto` |
 | `S3_BUCKET` | no | `second-brain` | Private attachment bucket |
-| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | no | empty | Storage credentials |
-| `S3_FORCE_PATH_STYLE` | no | `true` | Required by RustFS; configurable for R2 |
-| `S3_AUTO_CREATE_BUCKET` | no | `false` | Create the bucket at startup; enable for RustFS dev |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | no | empty | Bucket-scoped R2 API token |
+| `S3_FORCE_PATH_STYLE` | no | `false` | R2 requires virtual-hosted style |
+| `S3_AUTO_CREATE_BUCKET` | no | `false` | Leave off; the bucket is created in the dashboard |
 | `ATTACHMENT_URL_TTL_SECONDS` | no | `900` | Signed upload/download URL lifetime, capped at one hour |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn`, `error` |
 | `LOG_FILE` | no | empty | Empty = stdout only; set = stdout + rotated file |
@@ -96,8 +96,7 @@ win over the file.
 
 ```bash
 make db                      # docker compose up -d db
-make run                     # migrate + serve (migrations are embedded)
-```
+make run                     # start api (configure S3_ENDPOINT for Cloudflare R2)
 
 `make build` produces `bin/morrow-api`; `docker compose up` builds and runs
 the API image instead. The database is published on `${DB_PORT:-5433}`; export
@@ -111,7 +110,7 @@ the API image instead. The database is published on `${DB_PORT:-5433}`; export
 | `make migrate-down` | roll back to zero (drops everything the migrations created) |
 | `make migrate-status` | current schema version and dirty state |
 | `make db-reset` | migrate down, then up — a clean database |
-| `make storage` | start the RustFS dev container (`:9000` API, `:9001` console) |
+
 | `make vapid` | print a fresh `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` pair |
 
 The schema starts from the fresh-project baseline
@@ -248,21 +247,20 @@ wire structs, so a field rename fails this suite and the frontend's.
 
 ## Attachment storage
 
-Development uses RustFS through the same S3 API as production R2:
+Cloudflare R2 is used directly for object storage:
 
 ```bash
-make storage   # RustFS on 127.0.0.1:9000; console at 127.0.0.1:9001
-make run       # S3_AUTO_CREATE_BUCKET=true creates the bucket
+# Set in .env or environment:
+# S3_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+# S3_REGION=auto
+# S3_BUCKET=second-brain
+# S3_ACCESS_KEY_ID=<r2-access-key-id>
+# S3_SECRET_ACCESS_KEY=<r2-secret-access-key>
+# S3_FORCE_PATH_STYLE=false
+# S3_AUTO_CREATE_BUCKET=false
 ```
 
-For production set `S3_ENDPOINT` to
-`https://<account-id>.r2.cloudflarestorage.com`, `S3_REGION=auto`, a
-bucket-scoped R2 API token, and `S3_AUTO_CREATE_BUCKET=false`. Keep the bucket private; the API signs every read.
-Allow browser `GET`/`HEAD`/`PUT` with `content-type` on the bucket CORS policy
-(`http://localhost:5173` and `http://localhost:4173` in development). If the API
-runs in Docker and RustFS is published on the host, keep `S3_ENDPOINT` internal
-(`http://rustfs:9000`) and set `S3_PUBLIC_ENDPOINT=http://127.0.0.1:9000` so the
-presigned URL is reachable by the browser.
+Keep the bucket private; the API signs every read. Allow browser CORS for `PUT`/`GET` on R2 directly if direct browser uploads are enabled.
 
 ## Auth
 

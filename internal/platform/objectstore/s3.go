@@ -43,7 +43,7 @@ type Presigned struct {
 	Headers http.Header
 }
 
-// S3 talks to RustFS in development and Cloudflare R2 in production.
+// S3 talks to one Cloudflare R2 bucket in both development and production.
 type S3 struct {
 	ops     *s3.Client
 	presign *s3.PresignClient

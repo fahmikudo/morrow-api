@@ -1,0 +1,11 @@
+# Build context excludes. The image only needs the Go module and source.
+.git
+.gitignore
+.github
+deploy
+bin
+.env
+.env.*
+!.env.example
+*.md
+.DS_Store

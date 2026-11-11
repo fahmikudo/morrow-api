@@ -13,23 +13,6 @@ services:
       timeout: 3s
       retries: 10
 
-  rustfs:
-    image: rustfs/rustfs:latest
-    environment:
-      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY_ID:-secondbrain}
-      RUSTFS_SECRET_KEY: ${S3_SECRET_ACCESS_KEY:-secondbrain-dev-secret}
-      RUSTFS_ADDRESS: ":9000"
-      RUSTFS_CONSOLE_ADDRESS: ":9001"
-      RUSTFS_CONSOLE_ENABLE: "true"
-      RUSTFS_CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173"
-      RUSTFS_OBS_LOGGER_LEVEL: error
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - rustfs-data:/data
-    command: ["/data"]
-
   api:
     build: .
     environment:
@@ -56,22 +39,19 @@ services:
       PEPY_PROJECT_ID: ${PEPY_PROJECT_ID:-5674}
       PEPY_LOGIN_INTERVAL_SECONDS: ${PEPY_LOGIN_INTERVAL_SECONDS:-259200}
       PEPY_SYNC_SECONDS: ${PEPY_SYNC_SECONDS:-300}
-      S3_ENDPOINT: http://rustfs:9000
-      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://127.0.0.1:9000}
-      S3_REGION: ${S3_REGION:-us-east-1}
+      # Cloudflare R2, same bucket as production. Empty credentials disable
+      # attachments; the API never creates the bucket.
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-}
+      S3_REGION: ${S3_REGION:-auto}
       S3_BUCKET: ${S3_BUCKET:-second-brain}
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-secondbrain}
-      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-secondbrain-dev-secret}
-      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
-      S3_AUTO_CREATE_BUCKET: ${S3_AUTO_CREATE_BUCKET:-true}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
+      S3_AUTO_CREATE_BUCKET: ${S3_AUTO_CREATE_BUCKET:-false}
       ATTACHMENT_URL_TTL_SECONDS: ${ATTACHMENT_URL_TTL_SECONDS:-900}
     ports:
       - "9900:8080"
     depends_on:
       db:
         condition: service_healthy
-      rustfs:
-        condition: service_started
-
-volumes:
-  rustfs-data:
