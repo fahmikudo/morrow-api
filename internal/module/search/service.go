@@ -171,10 +171,14 @@ func (s *Service) Search(ctx context.Context, userID, query string) ([]Result, e
 		}
 
 		subtitle := htmltext.Excerpt(current.Content, SubtitleLength)
+		title := strings.TrimSpace(current.Title)
+		if title == "" {
+			title = "Untitled"
+		}
 		results = append(results, Result{
 			Kind:     "note",
 			ID:       current.ID,
-			Title:    current.Title,
+			Title:    title,
 			Subtitle: subtitleFrom(&subtitle, "Note"),
 			Href:     "/knowledge/" + current.ID,
 		})
