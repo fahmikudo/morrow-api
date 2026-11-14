@@ -401,6 +401,10 @@ func (s *Service) CheckIn(ctx context.Context, userID, habitID, rawDate string) 
 			return err
 		}
 
+		if err := s.repo.DeleteSkip(ctx, tx, userID, habitID, date.Time()); err != nil {
+			return err
+		}
+
 		checkIn, err := s.repo.UpsertCheckIn(ctx, tx, userID, habitID, date.Time(), ids.New("hc"), wiretime.Now().Time())
 		if err != nil {
 			return err
@@ -429,6 +433,68 @@ func (s *Service) RemoveCheckIn(ctx context.Context, userID, habitID, rawDate st
 		}
 
 		return s.repo.DeleteCheckIn(ctx, tx, userID, habitID, date.Time())
+	})
+
+	return httpx.Map(err, s.log)
+}
+
+// ListSkips returns every explicit "not today" row.
+func (s *Service) ListSkips(ctx context.Context, userID string) ([]Skip, error) {
+	skips, err := s.repo.ListSkips(ctx, userID)
+	if err != nil {
+		return nil, httpx.Map(err, s.log)
+	}
+
+	return skips, nil
+}
+
+// Skip records one habit as skipped for one day; repeating the call returns
+// the original row and clears any check-in for the same day.
+func (s *Service) Skip(ctx context.Context, userID, habitID, rawDate string) (*Skip, error) {
+	date, err := wiretime.ParseDate(rawDate)
+	if err != nil {
+		return nil, httpx.BadRequest("Use a YYYY-MM-DD date for skips")
+	}
+
+	var stored *Skip
+
+	err = database.Tx(ctx, s.db, func(tx *gorm.DB) error {
+		if err := s.requireHabit(ctx, tx, userID, habitID); err != nil {
+			return err
+		}
+
+		if err := s.repo.DeleteCheckIn(ctx, tx, userID, habitID, date.Time()); err != nil {
+			return err
+		}
+
+		skip, err := s.repo.UpsertSkip(ctx, tx, userID, habitID, date.Time(), ids.New("hs"), wiretime.Now().Time())
+		if err != nil {
+			return err
+		}
+
+		stored = skip
+		return nil
+	})
+	if err != nil {
+		return nil, httpx.Map(err, s.log)
+	}
+
+	return stored, nil
+}
+
+// RemoveSkip deletes one day's skip; a missing row still returns 204.
+func (s *Service) RemoveSkip(ctx context.Context, userID, habitID, rawDate string) error {
+	date, err := wiretime.ParseDate(rawDate)
+	if err != nil {
+		return httpx.BadRequest("Use a YYYY-MM-DD date for skips")
+	}
+
+	err = database.Tx(ctx, s.db, func(tx *gorm.DB) error {
+		if err := s.requireHabit(ctx, tx, userID, habitID); err != nil {
+			return err
+		}
+
+		return s.repo.DeleteSkip(ctx, tx, userID, habitID, date.Time())
 	})
 
 	return httpx.Map(err, s.log)

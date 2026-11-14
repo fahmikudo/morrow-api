@@ -153,6 +153,58 @@ func (r *Repository) DeleteCheckIn(ctx context.Context, tx *gorm.DB, userID, hab
 		Delete(&CheckInRow{}).Error
 }
 
+// ListSkips returns every skip ordered by creation.
+func (r *Repository) ListSkips(ctx context.Context, userID string) ([]Skip, error) {
+	rows := make([]SkipRow, 0)
+	if err := r.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at asc, id asc").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	skips := make([]Skip, 0, len(rows))
+	for _, row := range rows {
+		skips = append(skips, row.ToWire())
+	}
+
+	return skips, nil
+}
+
+// UpsertSkip keeps one row per habit per day and returns the stored row:
+// a repeat returns the original, which makes the PUT idempotent.
+func (r *Repository) UpsertSkip(
+	ctx context.Context,
+	tx *gorm.DB,
+	userID, habitID string,
+	date time.Time,
+	id string,
+	createdAt time.Time,
+) (*Skip, error) {
+	row := tx.WithContext(ctx).Raw(
+		`insert into habit_skips (id, user_id, habit_id, date, created_at)
+		 values (?, ?, ?, ?, ?)
+		 on conflict (habit_id, date) do update set habit_id = excluded.habit_id
+		 returning id, habit_id, date, created_at`,
+		id, userID, habitID, date, createdAt,
+	).Row()
+
+	var stored SkipRow
+	if err := row.Scan(&stored.ID, &stored.HabitID, &stored.Date, &stored.CreatedAt); err != nil {
+		return nil, err
+	}
+
+	skip := stored.ToWire()
+	return &skip, nil
+}
+
+// DeleteSkip removes one day's skip; a missing row is not an error.
+func (r *Repository) DeleteSkip(ctx context.Context, tx *gorm.DB, userID, habitID string, date time.Time) error {
+	return tx.WithContext(ctx).
+		Where("habit_id = ? and user_id = ? and date = ?", habitID, userID, date).
+		Delete(&SkipRow{}).Error
+}
+
 func (r *Repository) list(ctx context.Context, userID, filter string) ([]Habit, error) {
 	query := r.db.WithContext(ctx).Where("user_id = ?", userID)
 	if filter != "" {

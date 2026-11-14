@@ -140,6 +140,21 @@ func (s *Service) Import(ctx context.Context, userID string, payload Database) e
 			}
 		}
 
+		for _, current := range payload.HabitSkips {
+			_, err := s.deps.Habits.UpsertSkip(
+				ctx,
+				tx,
+				userID,
+				current.HabitID,
+				current.Date.Time(),
+				current.ID,
+				current.CreatedAt.Time(),
+			)
+			if err != nil {
+				return err
+			}
+		}
+
 		for bucket, next := range counterBuckets(payload) {
 			if err := s.deps.Counters.Set(ctx, tx, userID, bucket, next); err != nil {
 				return err
@@ -230,6 +245,9 @@ func Validate(payload Database) error {
 		allIDs = append(allIDs, item.ID)
 	}
 	for _, item := range payload.HabitCheckIns {
+		allIDs = append(allIDs, item.ID)
+	}
+	for _, item := range payload.HabitSkips {
 		allIDs = append(allIDs, item.ID)
 	}
 
@@ -334,6 +352,12 @@ func Validate(payload Database) error {
 		}
 	}
 
+	for _, current := range payload.HabitSkips {
+		if _, ok := habitIDs[current.HabitID]; !ok {
+			return missing("habitId", current.ID)
+		}
+	}
+
 	type checkInKey struct {
 		habitID string
 		date    string
@@ -347,6 +371,17 @@ func Validate(payload Database) error {
 			)
 		}
 		checkInKeys[key] = struct{}{}
+	}
+
+	skipKeys := make(map[checkInKey]struct{}, len(payload.HabitSkips))
+	for _, current := range payload.HabitSkips {
+		key := checkInKey{habitID: current.HabitID, date: current.Date.String()}
+		if _, exists := skipKeys[key]; exists {
+			return httpx.BadRequest(
+				"Invalid import: duplicate skip for " + current.HabitID + " on " + current.Date.String(),
+			)
+		}
+		skipKeys[key] = struct{}{}
 	}
 
 	projectKeys := make(map[string]struct{}, len(payload.Projects))

@@ -148,3 +148,43 @@ func (h *Handler) removeCheckIn(w http.ResponseWriter, r *http.Request) {
 
 	httpx.NoContent(w)
 }
+
+func (h *Handler) listSkips(w http.ResponseWriter, r *http.Request) {
+	skips, err := h.service.ListSkips(r.Context(), httpx.UserID(r.Context()))
+	if err != nil {
+		httpx.Write(w, err)
+		return
+	}
+
+	_ = httpx.JSON(w, http.StatusOK, skips)
+}
+
+func (h *Handler) skip(w http.ResponseWriter, r *http.Request) {
+	skip, err := h.service.Skip(
+		r.Context(),
+		httpx.UserID(r.Context()),
+		chi.URLParam(r, "habitId"),
+		chi.URLParam(r, "date"),
+	)
+	if err != nil {
+		httpx.Write(w, err)
+		return
+	}
+
+	_ = httpx.JSON(w, http.StatusOK, skip)
+}
+
+func (h *Handler) removeSkip(w http.ResponseWriter, r *http.Request) {
+	err := h.service.RemoveSkip(
+		r.Context(),
+		httpx.UserID(r.Context()),
+		chi.URLParam(r, "habitId"),
+		chi.URLParam(r, "date"),
+	)
+	if err != nil {
+		httpx.Write(w, err)
+		return
+	}
+
+	httpx.NoContent(w)
+}

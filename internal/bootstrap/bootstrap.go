@@ -255,6 +255,7 @@ func NewRouter(cfg *config.Config, log *slog.Logger, deps Deps) http.Handler {
 		Inbox:    inboxItems,
 		Habits:   habits,
 		CheckIns: habits,
+		Skips:    habits,
 		Profiles: profiles,
 		Counters: counters,
 		Settings: settingsService,

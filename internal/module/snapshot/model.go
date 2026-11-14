@@ -28,6 +28,7 @@ type Response struct {
 	Areas         []area.Area                               `json:"areas"`
 	Habits        []habit.Habit                             `json:"habits"`
 	HabitCheckIns []habit.CheckIn                           `json:"habitCheckIns"`
+	HabitSkips    []habit.Skip                              `json:"habitSkips"`
 	Profile       profile.Profile                           `json:"profile"`
 	Counters      map[string]int32                          `json:"counters"`
 	Integrations  map[string]settings.IntegrationConnection `json:"integrations"`

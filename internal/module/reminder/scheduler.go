@@ -144,12 +144,18 @@ func (s *Scheduler) runUser(ctx context.Context, userID string, now time.Time) e
 		return err
 	}
 
+	skips, err := s.habits.ListSkips(ctx, userID)
+	if err != nil {
+		return err
+	}
+
 	today := localToday(now, loc)
 	candidates := computeDue(now, loc, settingsRow.ToWire(), ruleData{
 		Tasks:    tasks,
 		Events:   events,
 		Habits:   habits,
 		CheckIns: checkIns,
+		Skips:    skips,
 	})
 	if len(candidates) == 0 {
 		return nil

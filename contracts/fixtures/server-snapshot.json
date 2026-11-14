@@ -109,6 +109,14 @@
       "createdAt": "2026-11-08T00:30:00.000Z"
     }
   ],
+  "habitSkips": [
+    {
+      "id": "hs_55667788",
+      "habitId": "h_7a6b5c4d",
+      "date": "2026-11-09",
+      "createdAt": "2026-11-09T00:30:00.000Z"
+    }
+  ],
   "profile": {
     "id": "me",
     "name": "Raka Pratama",

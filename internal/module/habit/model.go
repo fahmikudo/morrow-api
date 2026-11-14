@@ -227,6 +227,38 @@ func (r CheckInRow) ToWire() CheckIn {
 	}
 }
 
+// Skip is the API shape of an explicit "not today".
+type Skip struct {
+	ID        string             `json:"id"`
+	HabitID   string             `json:"habitId"`
+	Date      wiretime.Date      `json:"date"`
+	CreatedAt wiretime.Timestamp `json:"createdAt"`
+}
+
+// SkipRow is the persisted shape of a skip.
+type SkipRow struct {
+	ID        string    `gorm:"column:id;primaryKey"`
+	UserID    string    `gorm:"column:user_id"`
+	HabitID   string    `gorm:"column:habit_id"`
+	Date      time.Time `gorm:"column:date"`
+	CreatedAt time.Time `gorm:"column:created_at"`
+}
+
+// TableName keeps the Gorm mapping explicit.
+func (SkipRow) TableName() string {
+	return "habit_skips"
+}
+
+// ToWire converts a stored row into the API shape.
+func (r SkipRow) ToWire() Skip {
+	return Skip{
+		ID:        r.ID,
+		HabitID:   r.HabitID,
+		Date:      wiretime.Date(r.Date),
+		CreatedAt: wiretime.Timestamp(r.CreatedAt),
+	}
+}
+
 // New is the create body.
 type New struct {
 	Title               string    `json:"title"`

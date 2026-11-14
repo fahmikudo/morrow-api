@@ -87,6 +87,10 @@ func TestHabitCheckInFixtureRoundTrips(t *testing.T) {
 	roundTrip[habit.CheckIn](t, "habit-check-in.json")
 }
 
+func TestHabitSkipFixtureRoundTrips(t *testing.T) {
+	roundTrip[habit.Skip](t, "habit-skip.json")
+}
+
 func TestInboxItemFixtureRoundTrips(t *testing.T) {
 	roundTrip[inbox.Item](t, "inbox-item.json")
 }

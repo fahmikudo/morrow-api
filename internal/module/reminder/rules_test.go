@@ -214,6 +214,16 @@ func TestComputeDueHabitRules(t *testing.T) {
 		}
 	})
 
+	t.Run("today skip silences the reminder", func(t *testing.T) {
+		due := computeDue(testClock(t, "2026-11-09 07:30", loc), loc, settings, ruleData{
+			Habits: []habit.Habit{base},
+			Skips:  []habit.Skip{{HabitID: "h1", Date: testDate(t, "2026-11-09")}},
+		})
+		if len(due) != 0 {
+			t.Fatalf("candidates = %v, want none", due)
+		}
+	})
+
 	t.Run("met weekly target skips the reminder", func(t *testing.T) {
 		weekly := base
 		weekly.Schedule = habit.Schedule{Kind: "flexible"}

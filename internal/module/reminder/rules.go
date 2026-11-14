@@ -27,6 +27,7 @@ type ruleData struct {
 	Events   []event.Event
 	Habits   []habit.Habit
 	CheckIns []habit.CheckIn
+	Skips    []habit.Skip
 }
 
 // computeDue returns the reminders scheduled at or before now in the user's
@@ -126,6 +127,10 @@ func computeDue(now time.Time, loc *time.Location, settings Settings, data ruleD
 			continue
 		}
 
+		if skippedToday(data.Skips, item.ID, today) {
+			continue
+		}
+
 		period := periodCount(data.CheckIns, item.ID, item.Cadence, today, loc)
 		if period >= item.Target {
 			continue
@@ -197,6 +202,17 @@ func scheduledOn(item habit.Habit, today string, loc *time.Location) bool {
 func checkedInToday(checkIns []habit.CheckIn, habitID, today string) bool {
 	for _, checkIn := range checkIns {
 		if checkIn.HabitID == habitID && checkIn.Date.String() == today {
+			return true
+		}
+	}
+
+	return false
+}
+
+// skippedToday reports whether the habit was explicitly skipped today.
+func skippedToday(skips []habit.Skip, habitID, today string) bool {
+	for _, skip := range skips {
+		if skip.HabitID == habitID && skip.Date.String() == today {
 			return true
 		}
 	}

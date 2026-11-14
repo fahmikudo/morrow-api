@@ -128,6 +128,83 @@ func TestHabitEndDateRoundTrip(t *testing.T) {
 	}
 }
 
+func TestHabitSkipIsIdempotentAndExclusiveWithCheckIns(t *testing.T) {
+	app := New(t)
+
+	status, habit := app.Post(t, "/api/v1/habits",
+		`{"title":"Run","cadence":"weekly","target":3,"startDate":"2026-11-01"}`)
+	if status != 201 {
+		t.Fatalf("create habit status = %d, want 201 (body %v)", status, habit)
+	}
+	habitID := StringField(t, habit, "id")
+
+	status, first := app.Put(t, "/api/v1/habits/"+habitID+"/skips/2026-11-09")
+	if status != 200 {
+		t.Fatalf("put skip status = %d, want 200 (body %v)", status, first)
+	}
+	if first["date"] != "2026-11-09" {
+		t.Errorf("skip date = %v, want 2026-11-09", first["date"])
+	}
+
+	_, second := app.Put(t, "/api/v1/habits/"+habitID+"/skips/2026-11-09")
+	if !reflect.DeepEqual(first["id"], second["id"]) {
+		t.Errorf("skip id = %v on repeat, want %v", second["id"], first["id"])
+	}
+
+	_, skips := app.GetList(t, "/api/v1/habit-skips")
+	if len(skips) != 1 {
+		t.Fatalf("skips = %d, want 1", len(skips))
+	}
+
+	// A check-in wins and clears the skip for that day.
+	app.Put(t, "/api/v1/habits/"+habitID+"/check-ins/2026-11-09")
+	_, skips = app.GetList(t, "/api/v1/habit-skips")
+	if len(skips) != 0 {
+		t.Errorf("skips after check-in = %d, want 0", len(skips))
+	}
+
+	// A skip wins and clears the check-in for that day.
+	app.Put(t, "/api/v1/habits/"+habitID+"/skips/2026-11-09")
+	_, checkIns := app.GetList(t, "/api/v1/habit-check-ins")
+	if len(checkIns) != 0 {
+		t.Errorf("check-ins after skip = %d, want 0", len(checkIns))
+	}
+
+	if status := app.Delete(t, "/api/v1/habits/"+habitID+"/skips/2026-11-09"); status != 204 {
+		t.Errorf("delete skip status = %d, want 204", status)
+	}
+	_, skips = app.GetList(t, "/api/v1/habit-skips")
+	if len(skips) != 0 {
+		t.Errorf("skips after delete = %d, want 0", len(skips))
+	}
+
+	status, body := app.Put(t, "/api/v1/habits/"+habitID+"/skips/9-11-2026")
+	if status != 400 {
+		t.Errorf("bad skip date status = %d, want 400", status)
+	}
+	if msg := ErrorMessage(body); msg != "Use a YYYY-MM-DD date for skips" {
+		t.Errorf("bad skip date error = %q", msg)
+	}
+
+	status, body = app.Put(t, "/api/v1/habits/h_missing/skips/2026-11-09")
+	if status != 404 {
+		t.Errorf("missing habit skip status = %d, want 404", status)
+	}
+	if msg := ErrorMessage(body); msg != "Habit not found" {
+		t.Errorf("missing habit skip error = %q", msg)
+	}
+
+	// Deleting the habit drops its skips too.
+	app.Put(t, "/api/v1/habits/"+habitID+"/skips/2026-11-09")
+	if status := app.Delete(t, "/api/v1/habits/"+habitID); status != 204 {
+		t.Fatalf("delete habit status = %d, want 204", status)
+	}
+	_, skips = app.GetList(t, "/api/v1/habit-skips")
+	if len(skips) != 0 {
+		t.Errorf("skips after habit delete = %d, want 0", len(skips))
+	}
+}
+
 func TestHabitArchiveAndRestoreAreIdempotent(t *testing.T) {
 	app := New(t)
 

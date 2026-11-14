@@ -43,6 +43,9 @@ type (
 	CheckInLister interface {
 		ListCheckIns(ctx context.Context, userID string) ([]habit.CheckIn, error)
 	}
+	SkipLister interface {
+		ListSkips(ctx context.Context, userID string) ([]habit.Skip, error)
+	}
 	ProfileReader interface {
 		Get(ctx context.Context, userID string) (*profile.Profile, error)
 	}
@@ -65,6 +68,7 @@ type Deps struct {
 	Inbox    InboxLister
 	Habits   HabitLister
 	CheckIns CheckInLister
+	Skips    SkipLister
 	Profiles ProfileReader
 	Counters CounterLister
 	Settings SettingsProvider
@@ -123,6 +127,10 @@ func (s *Service) Snapshot(ctx context.Context, userID string) (*Response, error
 	if err != nil {
 		return nil, httpx.Map(err, s.log)
 	}
+	skips, err := s.deps.Skips.ListSkips(ctx, userID)
+	if err != nil {
+		return nil, httpx.Map(err, s.log)
+	}
 	counters, err := s.deps.Counters.List(ctx, userID)
 	if err != nil {
 		return nil, httpx.Map(err, s.log)
@@ -146,6 +154,7 @@ func (s *Service) Snapshot(ctx context.Context, userID string) (*Response, error
 		Areas:         areas,
 		Habits:        habits,
 		HabitCheckIns: checkIns,
+		HabitSkips:    skips,
 		Profile:       *currentProfile,
 		Counters:      counters,
 		Integrations:  integrations,

@@ -20,6 +20,7 @@ func NewRepository(db *gorm.DB) *Repository {
 func (r *Repository) Clear(ctx context.Context, tx *gorm.DB, userID string) error {
 	for _, table := range []string{
 		"habit_check_ins",
+		"habit_skips",
 		"tasks",
 		"notes",
 		"events",

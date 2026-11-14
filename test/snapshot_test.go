@@ -24,6 +24,7 @@ func TestSnapshotShapeMatchesTheContract(t *testing.T) {
 		"areas",
 		"habits",
 		"habitCheckIns",
+		"habitSkips",
 		"profile",
 		"counters",
 		"integrations",
